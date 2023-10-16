@@ -4,13 +4,12 @@ import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.wujie.mapper.UserMapper;
 import com.wujie.pojo.Role;
+import com.wujie.pojo.SecurityUser;
 import com.wujie.pojo.UserInfo;
 import com.wujie.service.UserInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -22,8 +21,6 @@ import tk.mybatis.mapper.entity.Example;
 import javax.security.auth.login.LoginException;
 import java.util.ArrayList;
 import java.util.List;
-
-import static net.sf.jsqlparser.util.validation.metadata.NamedObject.role;
 
 @Service("userService")
 public class UserInfoServiceImpl implements UserInfoService, UserDetailsService {
@@ -67,18 +64,12 @@ public class UserInfoServiceImpl implements UserInfoService, UserDetailsService 
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        UserInfo userInfo = userMapper.findByUsername(username);
-        if (userInfo==null){
-            throw new AuthenticationException("用户不存在"){};
+        UserInfo user = userMapper.findByUsername(username);
+        if (user==null){
+            throw  new UsernameNotFoundException("用户名不存在");
         }
-        List<Role> roles = userInfo.getRoles();
-        // 角色集合
-        List<GrantedAuthority> authorities = new ArrayList<>();
-        // 角色必须以`ROLE_`开头，数据库中没有，则在这里加
-        for (Role role : roles) {
-            authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getRoleName()));
-        }
-        return new User(userInfo.getUsername(), userInfo.getPassword(),userInfo.getStatus()==1,true,true,true,authorities);
+        SecurityUser securityUser = new SecurityUser(user);
+        return new SecurityUser(user);
     }
 
     public List<GrantedAuthority> getList(List<Role> roles){
